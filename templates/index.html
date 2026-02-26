@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LangGraph Chat UI</title>
+  <style>
+    :root {
+      --bg: #f4f6fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --accent: #0f766e;
+      --accent-hover: #115e59;
+      --border: #d1d5db;
+    }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(180deg, #eef3ff 0%, var(--bg) 100%);
+      color: var(--text);
+    }
+    .wrap {
+      max-width: 760px;
+      margin: 40px auto;
+      padding: 0 16px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 8px 28px rgba(15, 23, 42, 0.08);
+    }
+    h1 {
+      margin-top: 0;
+      font-size: 1.4rem;
+    }
+    p {
+      color: var(--muted);
+      margin-top: 0;
+    }
+    textarea {
+      width: 100%;
+      min-height: 88px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      box-sizing: border-box;
+      resize: vertical;
+      font-size: 0.96rem;
+    }
+    .row {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: #fff;
+      background: var(--accent);
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button:hover { background: var(--accent-hover); }
+    .result {
+      margin-top: 16px;
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      background: #f9fafb;
+      white-space: pre-wrap;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>LangGraph Explicit Nodes</h1>
+      <p>Ask for weather by including a city, or ask for a joke.</p>
+      <textarea id="question" placeholder="Example: What is the weather in Cairo?"></textarea>
+      <div class="row">
+        <button id="send">Send</button>
+      </div>
+      <div class="result" id="result">Result will appear here.</div>
+    </div>
+  </div>
+  <script>
+    const questionEl = document.getElementById("question");
+    const resultEl = document.getElementById("result");
+    const sendBtn = document.getElementById("send");
+
+    async function sendQuestion() {
+      const question = questionEl.value.trim();
+      if (!question) {
+        resultEl.textContent = "Please enter a question.";
+        return;
+      }
+
+      sendBtn.disabled = true;
+      resultEl.textContent = "Thinking...";
+      try {
+        const response = await fetch("/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question }),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          resultEl.textContent = "Error: " + (data.detail || "Request failed.");
+          return;
+        }
+
+        resultEl.textContent =
+          "Intent: " + data.intent + "\n" +
+          (data.city ? "City: " + data.city + "\n" : "") +
+          (data.topic ? "Topic: " + data.topic + "\n" : "") +
+          "Answer: " + data.answer;
+      } catch (error) {
+        resultEl.textContent = "Error: " + error;
+      } finally {
+        sendBtn.disabled = false;
+      }
+    }
+
+    sendBtn.addEventListener("click", sendQuestion);
+    questionEl.addEventListener("keydown", function(event) {
+      if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+        sendQuestion();
+      }
+    });
+  </script>
+</body>
+</html>
